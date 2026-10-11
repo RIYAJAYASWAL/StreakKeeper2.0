@@ -218,7 +218,7 @@ export function DashboardPreview() {
                     <div className="flex items-center gap-1 mb-2">
                       <span className="text-emerald-600 text-xs">🌿</span>
                       <span className="text-[10px] sm:text-[11px] font-bold text-[#0B1635]">
-                        Today's Habits
+                        Today&apos;s Habits
                       </span>
                     </div>
 
@@ -352,7 +352,7 @@ export function DashboardPreview() {
                       <span>AI Insight</span>
                     </div>
                     <p className="text-[8.5px] sm:text-[9px] text-slate-600 leading-tight">
-                      You've been consistent with your reading habit! Try adding short bursts of meditation in the evening to improve your sleep.
+                      You&apos;ve been consistent with your reading habit! Try adding short bursts of meditation in the evening to improve your sleep.
                     </p>
                   </div>
                 </div>

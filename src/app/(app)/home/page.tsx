@@ -519,7 +519,7 @@ export default function HomePage() {
             <div>
               <div className="flex items-center justify-between pb-3.5 border-b border-slate-200/50">
                 <h2 className="text-base font-extrabold text-navy-950 tracking-tight">
-                  Today's Habits
+                  Today&apos;s Habits
                 </h2>
               </div>
 

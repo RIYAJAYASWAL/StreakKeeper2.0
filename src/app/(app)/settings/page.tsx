@@ -553,7 +553,7 @@ export default function SettingsPage() {
                 <div className="p-3 bg-sky-50/80 hover:bg-white backdrop-blur-xs border border-sky-200/80 hover:border-sky-300 rounded-xl text-sky-900 text-xs font-semibold flex items-start gap-2 transition-all duration-200 hover:shadow-md">
                   <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-extrabold block text-sky-950">// TODO: Backend Notification Integration</span>
+                    <span className="font-extrabold block text-sky-950">TODO: Backend Notification Integration</span>
                     Preferences below are simulated locally in your browser until server notification webhooks are active.
                   </div>
                 </div>
@@ -777,7 +777,7 @@ export default function SettingsPage() {
                 <div className="p-3 bg-sky-50/80 hover:bg-white backdrop-blur-xs border border-sky-200/80 hover:border-sky-300 rounded-xl text-sky-900 text-xs font-semibold flex items-start gap-2 transition-all duration-200 hover:shadow-md">
                   <Info className="w-4 h-4 text-sky-600 shrink-0 mt-0.5" />
                   <div>
-                    <span className="font-extrabold block text-sky-950">// TODO: Backend Theme Persistence</span>
+                    <span className="font-extrabold block text-sky-950">TODO: Backend Theme Persistence</span>
                     Appearance preferences are currently simulated locally. Theme state will persist to user session.
                   </div>
                 </div>

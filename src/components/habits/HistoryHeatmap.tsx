@@ -592,7 +592,7 @@ export function HistoryHeatmap({
                 </div>
                 {selectedDay.freezeNote && (
                   <p className="mt-2 text-xs text-slate-600 italic">
-                    "{selectedDay.freezeNote}"
+                    &quot;{selectedDay.freezeNote}&quot;
                   </p>
                 )}
               </div>

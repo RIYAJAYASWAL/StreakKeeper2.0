@@ -69,24 +69,6 @@ export function TriggerPointsList({
   triggers,
   isLoading = false,
 }: TriggerPointsListProps) {
-  if (isLoading) {
-    return (
-      <div className="bg-white rounded-[24px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_24px_rgba(15,30,72,0.04)] h-full flex flex-col justify-between">
-        <Skeleton className="h-5 w-32 rounded-lg mb-4" />
-        <div className="space-y-4">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="flex items-center gap-3">
-              <Skeleton className="w-6 h-6 rounded-full" />
-              <Skeleton className="w-24 h-4 rounded-md" />
-              <Skeleton className="flex-1 h-3 rounded-full" />
-              <Skeleton className="w-8 h-4 rounded-md" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   // Merge server triggers if available with styled configs, or use default configs
   const displayItems = React.useMemo(() => {
     if (!triggers || triggers.length === 0) {
@@ -113,6 +95,24 @@ export function TriggerPointsList({
       };
     });
   }, [triggers]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-white rounded-[24px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_24px_rgba(15,30,72,0.04)] h-full flex flex-col justify-between">
+        <Skeleton className="h-5 w-32 rounded-lg mb-4" />
+        <div className="space-y-4">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="flex items-center gap-3">
+              <Skeleton className="w-6 h-6 rounded-full" />
+              <Skeleton className="w-24 h-4 rounded-md" />
+              <Skeleton className="flex-1 h-3 rounded-full" />
+              <Skeleton className="w-8 h-4 rounded-md" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-[24px] p-6 sm:p-7 border border-slate-100 shadow-[0_4px_24px_rgba(15,30,72,0.04)] h-full flex flex-col justify-between transition-all duration-200 hover:shadow-[0_8px_30px_rgba(15,30,72,0.06)]">

@@ -201,7 +201,7 @@ export default function JournalDetailPage() {
         <div className="bg-emerald-50/90 border border-emerald-200/70 rounded-2xl p-3 flex items-center justify-between gap-3 text-emerald-950 text-xs sm:text-sm font-bold shadow-2xs">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600 shrink-0" />
-            <span>Entry read! +5 XP counted towards today's consistency goal.</span>
+            <span>Entry read! +5 XP counted towards today&apos;s consistency goal.</span>
           </div>
           <span className="shrink-0 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-200/70 text-emerald-900">
             Streak Active
