@@ -83,6 +83,8 @@ model User {
   freezeUses       FreezeUse[]
   journals         Journal[]
   journalReads     JournalRead[]
+  likes            Like[]
+  comments         Comment[]
   createdGroups    Group[]        @relation("GroupCreator")
   groupMemberships GroupMember[]
   sentFriendships  Friendship[]   @relation("FriendshipRequester")
@@ -236,6 +238,8 @@ model Journal {
   author     User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   habit      Habit?            @relation(fields: [habitId], references: [id], onDelete: SetNull)
   reads      JournalRead[]
+  likes      Like[]
+  comments   Comment[]
 
   @@index([authorId])
   @@index([habitId])
@@ -259,6 +263,36 @@ model JournalRead {
   @@index([userId])
   @@index([journalId])
   @@index([localDate])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  journalId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, journalId])
+  @@index([journalId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  journalId String
+  authorId  String
+  content   String   @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  journal   Journal  @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([journalId])
+  @@index([authorId])
+  @@index([createdAt])
 }
 
 model Group {
