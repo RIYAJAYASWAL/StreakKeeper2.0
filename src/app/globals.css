@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --background: 250 248 245;
+    --foreground: 11 22 53;
+    
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --card-border: 236 232 242;
+
+    --navy-start: #0B1635;
+    --navy-end: #1B2A5E;
+
+    --chart-teal: #1BA39C;
+    --chart-orange: #FF8A3D;
+    --chart-blue: #3B82F6;
+    --chart-purple: #8B5CF6;
+  }
+
+  body {
+    background-color: #FAF8F5;
+    background-image: 
+      radial-gradient(ellipse at 85% 8%, rgba(238, 233, 254, 0.45) 0%, rgba(254, 237, 230, 0.35) 45%, transparent 70%),
+      radial-gradient(ellipse at 15% 90%, rgba(230, 243, 254, 0.3) 0%, transparent 60%);
+    background-attachment: fixed;
+    color: #0F1E48;
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(11, 22, 53, 0.15);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(11, 22, 53, 0.25);
+}
