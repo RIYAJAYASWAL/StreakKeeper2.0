@@ -4,7 +4,7 @@ import { auth } from '@/server/lib/auth';
 import LandingPage from '@/components/landing/LandingPage';
 
 export const metadata: Metadata = {
-  title: 'StreakKeeper - Small Habits. Big Changes.',
+  title: 'StreakKeeper',
   description:
     'StreakKeeper helps you build positive habits, track your progress, protect streaks with freezes, and stay consistent — one day at a time.',
   keywords: [
