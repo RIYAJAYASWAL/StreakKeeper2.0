@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { RestoreStreakCard } from '@/components/restore/RestoreStreakCard';
 
 export const metadata: Metadata = {
-  title: 'Restore Streak · StreakKeeper',
+  title: 'StreakKeeper',
   description: 'Use a streak freeze to restore and protect your habit consistency.',
 };
 

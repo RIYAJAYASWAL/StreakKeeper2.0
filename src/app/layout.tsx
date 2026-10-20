@@ -11,7 +11,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: 'StreakKeeper - Intelligent Habit & Streak Tracking',
+  title: 'StreakKeeper',
   description: 'Gamified habit tracker with streak freezes, behavioral triggers, community groups, and AI insights.',
 };
 

@@ -25,16 +25,19 @@ interface StreakChartProps {
 }
 
 const DEFAULT_STREAK_SERIES: StreakDataPoint[] = [
-  { date: 'Day 1', streak: 3 },
-  { date: 'Day 2', streak: 6 },
-  { date: 'Day 3', streak: 4 },
-  { date: 'Day 4', streak: 8 },
-  { date: 'Day 5', streak: 5 },
-  { date: 'Day 6', streak: 9 },
-  { date: 'Day 7', streak: 7 },
-  { date: 'Day 8', streak: 11 },
-  { date: 'Day 9', streak: 8 },
-  { date: 'Day 10', streak: 12 },
+  { date: 'Day 1', streak: 1 },
+  { date: 'Day 2', streak: 1 },
+  { date: 'Day 3', streak: 1.8 },
+  { date: 'Day 4', streak: 1.3 },
+  { date: 'Day 5', streak: 2.0 },
+  { date: 'Day 6', streak: 3.8 },
+  { date: 'Day 7', streak: 2.0 },
+  { date: 'Day 8', streak: 2.4 },
+  { date: 'Day 9', streak: 4.1 },
+  { date: 'Day 10', streak: 3.1 },
+  { date: 'Day 11', streak: 4.3 },
+  { date: 'Day 12', streak: 3.7 },
+  { date: 'Day 13', streak: 7 },
 ];
 
 export function StreakChart({
@@ -110,11 +113,11 @@ export function StreakChart({
           <AreaChart data={series} margin={{ top: 8, right: 6, left: 6, bottom: 2 }}>
             <defs>
               <linearGradient id="tealStreakGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#0D9488" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#0D9488" stopOpacity={0.0} />
+                <stop offset="0%" stopColor="#0D9488" stopOpacity={0.25} />
+                <stop offset="100%" stopColor="#0D9488" stopOpacity={0.0} />
               </linearGradient>
             </defs>
-            <YAxis hide domain={['dataMin - 1', 'dataMax + 2']} />
+            <YAxis hide domain={['dataMin - 0.5', 'dataMax + 0.8']} />
             <XAxis hide dataKey="date" />
             <Tooltip
               formatter={(val: any) => [`${val} days`, 'Streak']}
@@ -130,13 +133,13 @@ export function StreakChart({
               }}
             />
             <Area
-              type="monotone"
+              type="linear"
               dataKey="streak"
               stroke="#0D9488"
-              strokeWidth={2.4}
+              strokeWidth={2.2}
               fillOpacity={1}
               fill="url(#tealStreakGradient)"
-              dot={{ r: 2.5, fill: '#0D9488', strokeWidth: 1.5, stroke: '#FFFFFF' }}
+              dot={{ r: 2.5, fill: '#0D9488', stroke: '#0D9488', strokeWidth: 1 }}
               activeDot={{ r: 4.5, fill: '#0D9488', stroke: '#FFFFFF', strokeWidth: 2 }}
             />
           </AreaChart>

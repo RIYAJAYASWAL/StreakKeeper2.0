@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     'AI habit insights',
   ],
   openGraph: {
-    title: 'StreakKeeper - Small Habits. Big Changes.',
+    title: 'StreakKeeper',
     description:
       'StreakKeeper helps you build positive habits, track your progress and stay consistent with AI insights and community accountability.',
     url: 'https://streakkeeper.app',
@@ -27,7 +27,7 @@ export const metadata: Metadata = {
         url: '/images/landing-mountains-bg.png',
         width: 1200,
         height: 630,
-        alt: 'StreakKeeper - Intelligent Habit & Streak Tracking',
+        alt: 'StreakKeeper',
       },
     ],
     locale: 'en_US',
@@ -35,7 +35,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'StreakKeeper - Small Habits. Big Changes.',
+    title: 'StreakKeeper',
     description:
       'StreakKeeper helps you build positive habits, track your progress and stay consistent.',
     images: ['/images/landing-mountains-bg.png'],
