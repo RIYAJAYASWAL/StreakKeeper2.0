@@ -55,8 +55,8 @@ const DEFAULT_DEMO_HABITS: DisplayHabit[] = [
   {
     id: 'demo-2',
     name: 'Workout',
-    currentCount: 2,
-    targetCount: 3,
+    currentCount: 1,
+    targetCount: 1,
     isCompleted: true,
   },
   {
@@ -205,7 +205,7 @@ export default function HomePage() {
   const levelTitle = LEVEL_TITLES[userLevel] || 'Habit Champion';
 
   // Greeting by user local time
-  const { greeting, icon: greetingIcon } = useMemo(() => {
+  const greeting = useMemo(() => {
     try {
       const now = new Date();
       const hourStr = new Intl.DateTimeFormat('en-US', {
@@ -215,20 +215,20 @@ export default function HomePage() {
       }).format(now);
       const hour = parseInt(hourStr, 10);
       if (hour >= 5 && hour < 12) {
-        return { greeting: 'Good morning', icon: '☀' };
+        return 'Good morning';
       } else if (hour >= 12 && hour < 17) {
-        return { greeting: 'Good afternoon', icon: '☀' };
+        return 'Good afternoon';
       } else {
-        return { greeting: 'Good evening', icon: '🌙' };
+        return 'Good evening';
       }
     } catch {
       const hour = new Date().getHours();
       if (hour >= 5 && hour < 12) {
-        return { greeting: 'Good morning', icon: '☀' };
+        return 'Good morning';
       } else if (hour >= 12 && hour < 17) {
-        return { greeting: 'Good afternoon', icon: '☀' };
+        return 'Good afternoon';
       } else {
-        return { greeting: 'Good evening', icon: '🌙' };
+        return 'Good evening';
       }
     }
   }, [userTimezone]);
@@ -406,9 +406,8 @@ export default function HomePage() {
               </div>
             ) : (
               <>
-                <h1 className="text-xl sm:text-2xl font-bold text-navy-900 tracking-tight flex items-center gap-1.5 drop-shadow-xs">
-                  <span>{`${greeting}, ${userName}!`}</span>
-                  <span className="text-amber-500 text-lg sm:text-xl">{greetingIcon}</span>
+                <h1 className="text-xl sm:text-2xl font-bold text-navy-900 tracking-tight drop-shadow-xs">
+                  {`${greeting}, ${userName}!`}
                 </h1>
                 <p className="text-xs sm:text-sm font-semibold text-slate-800/90 mt-0.5 drop-shadow-2xs">
                   Consistency builds the life you want.

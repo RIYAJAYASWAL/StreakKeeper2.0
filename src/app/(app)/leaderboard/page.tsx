@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChevronDown,
@@ -18,6 +18,7 @@ import {
 import { Avatar } from '@/components/ui/Avatar';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { api, LeaderboardEntry, UserProfile } from '@/lib/api';
+import { useSharedHabits } from '@/lib/habitsStore';
 
 type ScopeType = 'global' | 'friends';
 type PeriodType = 'month' | 'all';
@@ -35,111 +36,91 @@ interface LevelRankInfo {
   members: LeaderboardEntry[];
 }
 
-// 1. GLOBAL DUMMY DATA (Month vs All Time)
+// 1. GLOBAL DUMMY DATA (Consistent with real rankings)
 const GLOBAL_DATA: Record<PeriodType, { topThree: LeaderboardEntry[]; list: LeaderboardEntry[] }> = {
   month: {
     topThree: [
       {
         userId: 'g-1',
-        name: 'Aarav Mehta',
-        xp: 870,
+        name: 'Jordan Lee',
+        xp: 850,
         level: 5,
         image: '/images/avatar-aarav.jpg',
-        currentStreak: 87,
-        longestStreak: 87,
+        currentStreak: 12,
+        longestStreak: 21,
         rank: 1,
       },
       {
         userId: 'g-2',
-        name: 'Sneha Patel',
-        xp: 810,
-        level: 4,
-        image: '/images/avatar-sneha.jpg',
-        currentStreak: 81,
-        longestStreak: 81,
+        name: 'Maya Chen',
+        xp: 450,
+        level: 3,
+        image: '/images/avatar-maya.jpg',
+        currentStreak: 9,
+        longestStreak: 14,
         rank: 2,
       },
       {
-        userId: 'g-3',
-        name: 'Ishaan Kapoor',
-        xp: 760,
-        level: 4,
-        image: '/images/avatar-ishaan.jpg',
-        currentStreak: 76,
-        longestStreak: 76,
+        userId: 'user-self',
+        name: 'You',
+        xp: 450,
+        level: 3,
+        image: '/images/avatar-riya.jpg',
+        currentStreak: 7,
+        longestStreak: 14,
         rank: 3,
       },
     ],
     list: [
       {
         userId: 'g-4',
-        name: 'Priya Sharma',
-        xp: 720,
-        level: 4,
-        image: null,
-        currentStreak: 72,
-        longestStreak: 72,
+        name: 'Alex Rivera',
+        xp: 220,
+        level: 2,
+        image: '/images/avatar-alex.jpg',
+        currentStreak: 4,
+        longestStreak: 10,
         rank: 4,
       },
       {
-        userId: 'user-self',
-        name: 'You',
-        xp: 600,
-        level: 4,
-        image: '/images/avatar-riya.jpg',
-        currentStreak: 68,
-        longestStreak: 68,
+        userId: 'g-5',
+        name: 'Priya Sharma',
+        xp: 200,
+        level: 2,
+        image: null,
+        currentStreak: 3,
+        longestStreak: 8,
         rank: 5,
       },
       {
         userId: 'g-6',
         name: 'Rohan Das',
-        xp: 610,
-        level: 3,
+        xp: 150,
+        level: 2,
         image: null,
-        currentStreak: 61,
-        longestStreak: 61,
+        currentStreak: 2,
+        longestStreak: 6,
         rank: 6,
       },
       {
         userId: 'g-7',
         name: 'Neha Singh',
-        xp: 560,
-        level: 3,
+        xp: 120,
+        level: 1,
         image: null,
-        currentStreak: 56,
-        longestStreak: 56,
+        currentStreak: 2,
+        longestStreak: 5,
         rank: 7,
       },
       {
         userId: 'g-8',
-        name: 'Aditya Khanna',
-        xp: 520,
-        level: 3,
-        image: null,
-        currentStreak: 52,
-        longestStreak: 52,
+        name: 'Ishaan Kapoor',
+        xp: 90,
+        level: 1,
+        image: '/images/avatar-ishaan.jpg',
+        currentStreak: 1,
+        longestStreak: 4,
         rank: 8,
-      },
-      {
-        userId: 'g-9',
-        name: 'Kavya Nair',
-        xp: 480,
-        level: 3,
-        image: null,
-        currentStreak: 48,
-        longestStreak: 48,
-        rank: 9,
-      },
-      {
-        userId: 'g-10',
-        name: 'Tanishq Rao',
-        xp: 440,
-        level: 2,
-        image: null,
-        currentStreak: 44,
-        longestStreak: 44,
-        rank: 10,
       },
     ],
   },
@@ -147,111 +128,91 @@ const GLOBAL_DATA: Record<PeriodType, { topThree: LeaderboardEntry[]; list: Lead
     topThree: [
       {
         userId: 'ga-1',
-        name: 'Aarav Mehta',
-        xp: 1850,
-        level: 7,
+        name: 'Jordan Lee',
+        xp: 850,
+        level: 5,
         image: '/images/avatar-aarav.jpg',
-        currentStreak: 142,
-        longestStreak: 160,
+        currentStreak: 12,
+        longestStreak: 21,
         rank: 1,
       },
       {
         userId: 'ga-2',
-        name: 'Jordan Lee',
-        xp: 1540,
-        level: 7,
-        image: null,
-        currentStreak: 136,
-        longestStreak: 152,
+        name: 'Maya Chen',
+        xp: 450,
+        level: 3,
+        image: '/images/avatar-maya.jpg',
+        currentStreak: 9,
+        longestStreak: 14,
         rank: 2,
       },
       {
-        userId: 'ga-3',
-        name: 'Sneha Patel',
-        xp: 1420,
-        level: 6,
-        image: '/images/avatar-sneha.jpg',
-        currentStreak: 124,
-        longestStreak: 138,
+        userId: 'user-self',
+        name: 'You',
+        xp: 450,
+        level: 3,
+        image: '/images/avatar-riya.jpg',
+        currentStreak: 7,
+        longestStreak: 14,
         rank: 3,
       },
     ],
     list: [
       {
         userId: 'ga-4',
-        name: 'Ishaan Kapoor',
-        xp: 1280,
-        level: 6,
-        image: '/images/avatar-ishaan.jpg',
-        currentStreak: 115,
-        longestStreak: 125,
+        name: 'Alex Rivera',
+        xp: 220,
+        level: 2,
+        image: '/images/avatar-alex.jpg',
+        currentStreak: 4,
+        longestStreak: 10,
         rank: 4,
       },
       {
         userId: 'ga-5',
         name: 'Priya Sharma',
-        xp: 1190,
-        level: 5,
+        xp: 200,
+        level: 2,
         image: null,
-        currentStreak: 102,
-        longestStreak: 110,
+        currentStreak: 3,
+        longestStreak: 8,
         rank: 5,
       },
       {
-        userId: 'user-self',
-        name: 'You',
-        xp: 600,
-        level: 4,
-        image: '/images/avatar-riya.jpg',
-        currentStreak: 94,
-        longestStreak: 94,
+        userId: 'ga-6',
+        name: 'Rohan Das',
+        xp: 150,
+        level: 2,
+        image: null,
+        currentStreak: 2,
+        longestStreak: 6,
         rank: 6,
       },
       {
         userId: 'ga-7',
-        name: 'Rohan Das',
-        xp: 1050,
-        level: 5,
+        name: 'Neha Singh',
+        xp: 120,
+        level: 1,
         image: null,
-        currentStreak: 88,
-        longestStreak: 98,
+        currentStreak: 2,
+        longestStreak: 5,
         rank: 7,
       },
       {
         userId: 'ga-8',
-        name: 'Dev Malhotra',
-        xp: 980,
-        level: 5,
-        image: null,
-        currentStreak: 82,
-        longestStreak: 90,
+        name: 'Ishaan Kapoor',
+        xp: 90,
+        level: 1,
+        image: '/images/avatar-ishaan.jpg',
+        currentStreak: 1,
+        longestStreak: 4,
         rank: 8,
-      },
-      {
-        userId: 'ga-9',
-        name: 'Neha Singh',
-        xp: 910,
-        level: 4,
-        image: null,
-        currentStreak: 78,
-        longestStreak: 86,
-        rank: 9,
-      },
-      {
-        userId: 'ga-10',
-        name: 'Aditya Khanna',
-        xp: 860,
-        level: 4,
-        image: null,
-        currentStreak: 71,
-        longestStreak: 82,
-        rank: 10,
       },
     ],
   },
 };
 
-// 2. FRIENDS DUMMY DATA (Different members and streaks)
+// 2. FRIENDS DUMMY DATA (Consistent 7 day streak for user, 14 full members)
 const FRIENDS_DATA: Record<PeriodType, { topThree: LeaderboardEntry[]; list: LeaderboardEntry[] }> = {
   month: {
     topThree: [
@@ -261,28 +222,28 @@ const FRIENDS_DATA: Record<PeriodType, { topThree: LeaderboardEntry[]; list: Lea
         xp: 450,
         level: 3,
         image: '/images/avatar-maya.jpg',
-        currentStreak: 44,
-        longestStreak: 44,
+        currentStreak: 9,
+        longestStreak: 14,
         rank: 1,
-      },
-      {
-        userId: 'f-2',
-        name: 'Alex Rivera',
-        xp: 220,
-        level: 2,
-        image: '/images/avatar-alex.jpg',
-        currentStreak: 38,
-        longestStreak: 38,
-        rank: 2,
       },
       {
         userId: 'user-self',
         name: 'You',
-        xp: 600,
-        level: 4,
+        xp: 450,
+        level: 3,
         image: '/images/avatar-riya.jpg',
-        currentStreak: 35,
-        longestStreak: 60,
+        currentStreak: 7,
+        longestStreak: 14,
+        rank: 2,
+      },
+      {
+        userId: 'f-2',
+        name: 'Ananya Iyer',
+        xp: 320,
+        level: 3,
+        image: null,
+        currentStreak: 6,
+        longestStreak: 10,
         rank: 3,
       },
     ],
@@ -290,138 +251,258 @@ const FRIENDS_DATA: Record<PeriodType, { topThree: LeaderboardEntry[]; list: Lea
       {
         userId: 'f-4',
         name: 'Vikram Roy',
-        xp: 410,
+        xp: 280,
         level: 3,
         image: null,
-        currentStreak: 31,
-        longestStreak: 31,
+        currentStreak: 5,
+        longestStreak: 8,
         rank: 4,
       },
       {
         userId: 'f-5',
-        name: 'Tara Sen',
-        xp: 370,
-        level: 3,
-        image: null,
-        currentStreak: 28,
-        longestStreak: 28,
+        name: 'Alex Rivera',
+        xp: 220,
+        level: 2,
+        image: '/images/avatar-alex.jpg',
+        currentStreak: 4,
+        longestStreak: 10,
         rank: 5,
       },
       {
         userId: 'f-6',
-        name: 'Ananya Iyer',
-        xp: 310,
+        name: 'Priya Sharma',
+        xp: 200,
         level: 2,
         image: null,
-        currentStreak: 24,
-        longestStreak: 24,
+        currentStreak: 3,
+        longestStreak: 8,
         rank: 6,
       },
       {
         userId: 'f-7',
         name: 'Sameer Joshi',
-        xp: 280,
+        xp: 190,
         level: 2,
         image: null,
-        currentStreak: 19,
-        longestStreak: 19,
+        currentStreak: 3,
+        longestStreak: 7,
         rank: 7,
       },
       {
         userId: 'f-8',
-        name: 'Meera Nair',
-        xp: 190,
+        name: 'Tara Sen',
+        xp: 180,
         level: 2,
         image: null,
-        currentStreak: 14,
-        longestStreak: 14,
+        currentStreak: 3,
+        longestStreak: 6,
         rank: 8,
+      },
+      {
+        userId: 'f-9',
+        name: 'Rohan Das',
+        xp: 150,
+        level: 2,
+        image: null,
+        currentStreak: 2,
+        longestStreak: 6,
+        rank: 9,
+      },
+      {
+        userId: 'f-10',
+        name: 'Kavya Nair',
+        xp: 140,
+        level: 2,
+        image: null,
+        currentStreak: 2,
+        longestStreak: 5,
+        rank: 10,
+      },
+      {
+        userId: 'f-11',
+        name: 'Neha Singh',
+        xp: 120,
+        level: 1,
+        image: null,
+        currentStreak: 2,
+        longestStreak: 5,
+        rank: 11,
+      },
+      {
+        userId: 'f-12',
+        name: 'Meera Nair',
+        xp: 95,
+        level: 1,
+        image: null,
+        currentStreak: 1,
+        longestStreak: 4,
+        rank: 12,
+      },
+      {
+        userId: 'f-13',
+        name: 'Ishaan Kapoor',
+        xp: 90,
+        level: 1,
+        image: '/images/avatar-ishaan.jpg',
+        currentStreak: 1,
+        longestStreak: 4,
+        rank: 13,
+      },
+      {
+        userId: 'f-14',
+        name: 'Aditya Khanna',
+        xp: 85,
+        level: 1,
+        image: null,
+        currentStreak: 1,
+        longestStreak: 3,
+        rank: 14,
       },
     ],
   },
   all: {
     topThree: [
       {
-        userId: 'user-self',
-        name: 'You',
-        xp: 600,
-        level: 4,
-        image: '/images/avatar-riya.jpg',
-        currentStreak: 94,
-        longestStreak: 94,
-        rank: 1,
-      },
-      {
-        userId: 'fa-2',
+        userId: 'f-1',
         name: 'Maya Chen',
         xp: 450,
         level: 3,
         image: '/images/avatar-maya.jpg',
-        currentStreak: 88,
-        longestStreak: 92,
+        currentStreak: 9,
+        longestStreak: 14,
+        rank: 1,
+      },
+      {
+        userId: 'user-self',
+        name: 'You',
+        xp: 450,
+        level: 3,
+        image: '/images/avatar-riya.jpg',
+        currentStreak: 7,
+        longestStreak: 14,
         rank: 2,
       },
       {
-        userId: 'fa-3',
-        name: 'Alex Rivera',
-        xp: 220,
-        level: 2,
-        image: '/images/avatar-alex.jpg',
-        currentStreak: 74,
-        longestStreak: 78,
+        userId: 'f-2',
+        name: 'Ananya Iyer',
+        xp: 320,
+        level: 3,
+        image: null,
+        currentStreak: 6,
+        longestStreak: 10,
         rank: 3,
       },
     ],
     list: [
       {
-        userId: 'fa-4',
+        userId: 'f-4',
         name: 'Vikram Roy',
-        xp: 520,
+        xp: 280,
         level: 3,
         image: null,
-        currentStreak: 62,
-        longestStreak: 70,
+        currentStreak: 5,
+        longestStreak: 8,
         rank: 4,
       },
       {
-        userId: 'fa-5',
-        name: 'Tara Sen',
-        xp: 430,
-        level: 3,
-        image: null,
-        currentStreak: 55,
-        longestStreak: 62,
+        userId: 'f-5',
+        name: 'Alex Rivera',
+        xp: 220,
+        level: 2,
+        image: '/images/avatar-alex.jpg',
+        currentStreak: 4,
+        longestStreak: 10,
         rank: 5,
       },
       {
-        userId: 'fa-6',
-        name: 'Ananya Iyer',
-        xp: 380,
+        userId: 'f-6',
+        name: 'Priya Sharma',
+        xp: 200,
         level: 2,
         image: null,
-        currentStreak: 46,
-        longestStreak: 52,
+        currentStreak: 3,
+        longestStreak: 8,
         rank: 6,
       },
       {
-        userId: 'fa-7',
+        userId: 'f-7',
         name: 'Sameer Joshi',
-        xp: 310,
+        xp: 190,
         level: 2,
         image: null,
-        currentStreak: 32,
-        longestStreak: 40,
+        currentStreak: 3,
+        longestStreak: 7,
         rank: 7,
       },
       {
-        userId: 'fa-8',
-        name: 'Meera Nair',
-        xp: 240,
+        userId: 'f-8',
+        name: 'Tara Sen',
+        xp: 180,
         level: 2,
         image: null,
-        currentStreak: 26,
-        longestStreak: 34,
+        currentStreak: 3,
+        longestStreak: 6,
         rank: 8,
+      },
+      {
+        userId: 'f-9',
+        name: 'Rohan Das',
+        xp: 150,
+        level: 2,
+        image: null,
+        currentStreak: 2,
+        longestStreak: 6,
+        rank: 9,
+      },
+      {
+        userId: 'f-10',
+        name: 'Kavya Nair',
+        xp: 140,
+        level: 2,
+        image: null,
+        currentStreak: 2,
+        longestStreak: 5,
+        rank: 10,
+      },
+      {
+        userId: 'f-11',
+        name: 'Neha Singh',
+        xp: 120,
+        level: 1,
+        image: null,
+        currentStreak: 2,
+        longestStreak: 5,
+        rank: 11,
+      },
+      {
+        userId: 'f-12',
+        name: 'Meera Nair',
+        xp: 95,
+        level: 1,
+        image: null,
+        currentStreak: 1,
+        longestStreak: 4,
+        rank: 12,
+      },
+      {
+        userId: 'f-13',
+        name: 'Ishaan Kapoor',
+        xp: 90,
+        level: 1,
+        image: '/images/avatar-ishaan.jpg',
+        currentStreak: 1,
+        longestStreak: 4,
+        rank: 13,
+      },
+      {
+        userId: 'f-14',
+        name: 'Aditya Khanna',
+        xp: 85,
+        level: 1,
+        image: null,
+        currentStreak: 1,
+        longestStreak: 3,
+        rank: 14,
       },
     ],
   },
@@ -437,44 +518,40 @@ const LEVEL_BREAKDOWNS: LevelRankInfo[] = [
     totalInLevel: 88,
     xpRange: '850+ XP',
     status: 'upcoming',
-    note: 'Needs 250 XP to unlock Level 5 standing',
+    note: 'Needs 400 XP to unlock Level 5 standing',
     members: [
-      { userId: 'l5-1', name: 'Aarav Mehta', xp: 870, level: 5, image: null, currentStreak: 87, longestStreak: 87, rank: 1 },
-      { userId: 'l5-2', name: 'Jordan Lee', xp: 850, level: 5, image: null, currentStreak: 82, longestStreak: 82, rank: 2 },
-      { userId: 'l5-3', name: 'Dev Malhotra', xp: 860, level: 5, image: null, currentStreak: 79, longestStreak: 79, rank: 3 },
+      { userId: 'l5-1', name: 'Jordan Lee', xp: 850, level: 5, image: '/images/avatar-aarav.jpg', currentStreak: 12, longestStreak: 21, rank: 1 },
+      { userId: 'l5-2', name: 'Dev Malhotra', xp: 860, level: 5, image: null, currentStreak: 10, longestStreak: 15, rank: 2 },
     ],
   },
   {
     level: 4,
     title: 'Expert Practitioner',
     badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
-    userRank: 2,
-    totalInLevel: 142,
+    userRank: null,
+    totalInLevel: 14,
     xpRange: '600 - 849 XP',
-    status: 'current',
-    note: 'Holding Rank #2 among 142 Level 4 members',
+    status: 'upcoming',
+    note: 'Needs 150 XP to unlock Level 4 standing',
     members: [
-      { userId: 'l4-1', name: 'Sneha Patel', xp: 810, level: 4, image: null, currentStreak: 81, longestStreak: 81, rank: 1 },
-      { userId: 'user-self', name: 'You', xp: 600, level: 4, image: '/images/avatar-riya.jpg', currentStreak: 60, longestStreak: 60, rank: 2 },
-      { userId: 'l4-3', name: 'Ishaan Kapoor', xp: 760, level: 4, image: null, currentStreak: 76, longestStreak: 76, rank: 3 },
-      { userId: 'l4-4', name: 'Priya Sharma', xp: 720, level: 4, image: null, currentStreak: 72, longestStreak: 72, rank: 4 },
-      { userId: 'l4-5', name: 'Kavita Chawla', xp: 640, level: 4, image: null, currentStreak: 58, longestStreak: 58, rank: 5 },
+      { userId: 'l4-1', name: 'Sneha Patel', xp: 810, level: 4, image: null, currentStreak: 10, longestStreak: 15, rank: 1 },
+      { userId: 'l4-2', name: 'Kavita Chawla', xp: 640, level: 4, image: null, currentStreak: 8, longestStreak: 12, rank: 2 },
     ],
   },
   {
     level: 3,
     title: 'Consistent Performer',
     badgeBg: 'bg-sky-100 text-sky-900 border-sky-300',
-    userRank: 1,
-    totalInLevel: 215,
+    userRank: 2,
+    totalInLevel: 4,
     xpRange: '350 - 599 XP',
-    status: 'achieved',
-    note: 'Held Rank #1 in Level 3 before advancing',
+    status: 'current',
+    note: 'Holding Rank #2 in Level 3 Tier (450 / 600 XP)',
     members: [
-      { userId: 'user-self', name: 'You', xp: 600, level: 4, image: '/images/avatar-riya.jpg', currentStreak: 60, longestStreak: 60, rank: 1 },
-      { userId: 'l3-2', name: 'Rohan Das', xp: 590, level: 3, image: null, currentStreak: 61, longestStreak: 61, rank: 2 },
-      { userId: 'l3-3', name: 'Neha Singh', xp: 560, level: 3, image: null, currentStreak: 56, longestStreak: 56, rank: 3 },
-      { userId: 'l3-4', name: 'Aditya Khanna', xp: 520, level: 3, image: null, currentStreak: 52, longestStreak: 52, rank: 4 },
+      { userId: 'l3-1', name: 'Maya Chen', xp: 450, level: 3, image: '/images/avatar-maya.jpg', currentStreak: 9, longestStreak: 14, rank: 1 },
+      { userId: 'user-self', name: 'You', xp: 450, level: 3, image: '/images/avatar-riya.jpg', currentStreak: 7, longestStreak: 14, rank: 2 },
+      { userId: 'l3-3', name: 'Ananya Iyer', xp: 320, level: 3, image: null, currentStreak: 6, longestStreak: 10, rank: 3 },
+      { userId: 'l3-4', name: 'Vikram Roy', xp: 280, level: 3, image: null, currentStreak: 5, longestStreak: 8, rank: 4 },
     ],
   },
   {
@@ -482,15 +559,14 @@ const LEVEL_BREAKDOWNS: LevelRankInfo[] = [
     title: 'Routine Explorer',
     badgeBg: 'bg-purple-100 text-purple-900 border-purple-300',
     userRank: 1,
-    totalInLevel: 320,
+    totalInLevel: 25,
     xpRange: '150 - 349 XP',
     status: 'achieved',
     note: 'Held Rank #1 in Level 2 before advancing',
     members: [
-      { userId: 'user-self', name: 'You', xp: 600, level: 4, image: '/images/avatar-riya.jpg', currentStreak: 60, longestStreak: 60, rank: 1 },
-      { userId: 'l2-2', name: 'Alex Rivera', xp: 220, level: 2, image: null, currentStreak: 38, longestStreak: 38, rank: 2 },
-      { userId: 'l2-3', name: 'Ananya Iyer', xp: 310, level: 2, image: null, currentStreak: 24, longestStreak: 24, rank: 3 },
-      { userId: 'l2-4', name: 'Tanishq Rao', xp: 290, level: 2, image: null, currentStreak: 22, longestStreak: 22, rank: 4 },
+      { userId: 'user-self', name: 'You', xp: 450, level: 3, image: '/images/avatar-riya.jpg', currentStreak: 7, longestStreak: 14, rank: 1 },
+      { userId: 'l2-2', name: 'Alex Rivera', xp: 220, level: 2, image: '/images/avatar-alex.jpg', currentStreak: 4, longestStreak: 10, rank: 2 },
+      { userId: 'l2-3', name: 'Priya Sharma', xp: 200, level: 2, image: null, currentStreak: 3, longestStreak: 8, rank: 3 },
     ],
   },
   {
@@ -498,14 +574,14 @@ const LEVEL_BREAKDOWNS: LevelRankInfo[] = [
     title: 'Habit Starter',
     badgeBg: 'bg-slate-100 text-slate-800 border-slate-300',
     userRank: 1,
-    totalInLevel: 450,
+    totalInLevel: 40,
     xpRange: '0 - 149 XP',
     status: 'achieved',
     note: 'Held Rank #1 in Level 1 before advancing',
     members: [
-      { userId: 'user-self', name: 'You', xp: 600, level: 4, image: '/images/avatar-riya.jpg', currentStreak: 60, longestStreak: 60, rank: 1 },
-      { userId: 'l1-2', name: 'Sameer Joshi', xp: 120, level: 1, image: null, currentStreak: 18, longestStreak: 18, rank: 2 },
-      { userId: 'l1-3', name: 'Meera Nair', xp: 110, level: 1, image: null, currentStreak: 14, longestStreak: 14, rank: 3 },
+      { userId: 'user-self', name: 'You', xp: 450, level: 3, image: '/images/avatar-riya.jpg', currentStreak: 7, longestStreak: 14, rank: 1 },
+      { userId: 'l1-2', name: 'Neha Singh', xp: 120, level: 1, image: null, currentStreak: 2, longestStreak: 5, rank: 2 },
+      { userId: 'l1-3', name: 'Ishaan Kapoor', xp: 90, level: 1, image: '/images/avatar-ishaan.jpg', currentStreak: 1, longestStreak: 4, rank: 3 },
     ],
   },
 ];
@@ -513,11 +589,12 @@ const LEVEL_BREAKDOWNS: LevelRankInfo[] = [
 export default function LeaderboardPage() {
   const [activeTab, setActiveTab] = useState<TabType>('global');
   const [period, setPeriod] = useState<PeriodType>('month');
-  const [selectedLevelFilter, setSelectedLevelFilter] = useState<number | null>(4); // Default to current level (Level 4)
+  const [selectedLevelFilter, setSelectedLevelFilter] = useState<number | null>(3); // Default to current level (Level 3)
   const [allEntries, setAllEntries] = useState<LeaderboardEntry[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const myRankRowRef = useRef<HTMLDivElement | null>(null);
+  const { maxStreak: sharedMaxStreak } = useSharedHabits();
 
   // Fetch current user profile
   const { data: userProfile } = useQuery<UserProfile | null>({
@@ -595,30 +672,110 @@ export default function LeaderboardPage() {
     }
   }, [activeTab]);
 
-  // Active section data selection
+  const isEntryUser = useCallback(
+    (entry: LeaderboardEntry) =>
+      entry.userId === 'user-self' ||
+      entry.name === 'You' ||
+      (userProfile?.name && entry.name === userProfile.name) ||
+      entry.name === 'Riya' ||
+      (currentUserId ? entry.userId === currentUserId : false),
+    [userProfile?.name, currentUserId]
+  );
+
+  const getEntryName = useCallback(
+    (entry: LeaderboardEntry) => {
+      if (isEntryUser(entry)) {
+        return userProfile?.name?.split(' ')[0] || entry.name || 'Riya';
+      }
+      return entry.name || 'Member';
+    },
+    [isEntryUser, userProfile?.name]
+  );
+
+  const getEntryImage = useCallback(
+    (entry: LeaderboardEntry) => {
+      if (isEntryUser(entry)) {
+        return userProfile?.image || entry.image || '/images/avatar-riya.jpg';
+      }
+      return entry.image;
+    },
+    [isEntryUser, userProfile?.image]
+  );
+
+  // Active section data fallback
   const sectionData = activeTab === 'friends' ? FRIENDS_DATA[period] : GLOBAL_DATA[period];
 
-  // Top 3 Podium
-  const rank1 = (allEntries.length >= 3 ? allEntries.find((e) => e.rank === 1) : null) || sectionData.topThree[0];
-  const rank2 = (allEntries.length >= 3 ? allEntries.find((e) => e.rank === 2) : null) || sectionData.topThree[1];
-  const rank3 = (allEntries.length >= 3 ? allEntries.find((e) => e.rank === 3) : null) || sectionData.topThree[2];
+  const userEffectiveStreak = sharedMaxStreak || 7;
+  const userEffectiveLongest = Math.max(14, userEffectiveStreak);
+  const userEffectiveXp = userProfile?.xp || 450;
+  const userEffectiveLevel = userProfile?.level || 3;
 
-  // List from rank 4 downwards
-  const listEntries = (allEntries.length >= 4 ? allEntries.filter((e) => e.rank >= 4) : null) || sectionData.list;
+  // Strictly sort all entries by streak descending, ensuring accurate leaderboard rankings
+  const processedEntries = useMemo(() => {
+    const rawList =
+      allEntries && allEntries.length > 0
+        ? allEntries
+        : [...sectionData.topThree, ...sectionData.list];
+
+    // 1. Force user's real streak & XP into their entry across all tabs
+    const enriched = rawList.map((entry) => {
+      if (isEntryUser(entry)) {
+        return {
+          ...entry,
+          currentStreak: userEffectiveStreak,
+          longestStreak: userEffectiveLongest,
+          xp: userEffectiveXp,
+          level: userEffectiveLevel,
+          image: userProfile?.image || entry.image || '/images/avatar-riya.jpg',
+        };
+      }
+      return entry;
+    });
+
+    // 2. Sort strictly: highest currentStreak first, then longestStreak, then xp
+    const sorted = [...enriched].sort((a, b) => {
+      if (b.currentStreak !== a.currentStreak) {
+        return b.currentStreak - a.currentStreak;
+      }
+      if (b.longestStreak !== a.longestStreak) {
+        return b.longestStreak - a.longestStreak;
+      }
+      return b.xp - a.xp;
+    });
+
+    // 3. Recalculate rank (1, 2, 3...) strictly according to the sorted order
+    let currentRank = 1;
+    return sorted.map((entry, idx) => {
+      if (idx > 0) {
+        const prev = sorted[idx - 1];
+        if (
+          entry.currentStreak !== prev.currentStreak ||
+          entry.longestStreak !== prev.longestStreak ||
+          entry.xp !== prev.xp
+        ) {
+          currentRank = idx + 1;
+        }
+      }
+      return {
+        ...entry,
+        rank: currentRank,
+      };
+    });
+  }, [allEntries, sectionData, isEntryUser, userEffectiveStreak, userEffectiveLongest, userEffectiveXp, userEffectiveLevel, userProfile?.image]);
+
+  // Top 3 Podium strictly matching the top 3 sorted streak holders
+  const rank1 = processedEntries[0] || sectionData.topThree[0];
+  const rank2 = processedEntries[1] || sectionData.topThree[1];
+  const rank3 = processedEntries[2] || sectionData.topThree[2];
+
+  // List strictly from rank 4 downwards
+  const listEntries = processedEntries.slice(3);
 
   // Selected level breakdown for "My Rank" view
-  const currentLevelInfo = LEVEL_BREAKDOWNS.find((l) => l.level === (selectedLevelFilter ?? 4)) || LEVEL_BREAKDOWNS[1];
+  const currentLevelInfo = LEVEL_BREAKDOWNS.find((l) => l.level === (selectedLevelFilter ?? 3)) || LEVEL_BREAKDOWNS[2];
 
-  const isEntryUser = (entry: LeaderboardEntry) =>
-    entry.userId === 'user-self' ||
-    entry.name === 'You' ||
-    (currentUserId ? entry.userId === currentUserId : false);
-
-  const getEntryName = (entry: LeaderboardEntry) =>
-    isEntryUser(entry) ? 'You' : entry.name || 'Member';
-
-  const getEntryImage = (entry: LeaderboardEntry) =>
-    isEntryUser(entry) && userProfile?.image ? userProfile.image : entry.image;
+  const currentUserEntry = processedEntries.find(isEntryUser);
+  const userRankDisplay = currentUserEntry?.rank ?? 3;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pt-1 sm:pt-3 pb-16">
@@ -694,7 +851,7 @@ export default function LeaderboardPage() {
         >
           <span>My Rank</span>
           <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 font-extrabold">
-            #2
+            #{userRankDisplay}
           </span>
         </button>
       </div>
@@ -719,10 +876,10 @@ export default function LeaderboardPage() {
                 Global Standing
               </span>
               <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-black text-[#0B1635]">#5</span>
-                <span className="text-xs font-semibold text-slate-500">/ 1,240</span>
+                <span className="text-2xl font-black text-[#0B1635]">#3</span>
+                <span className="text-xs font-semibold text-slate-500">/ 16</span>
               </div>
-              <p className="text-[11px] font-bold text-indigo-600 mt-1">Top 1% Worldwide</p>
+              <p className="text-[11px] font-bold text-amber-600 mt-1">🥉 Podium Finisher</p>
             </div>
 
             {/* Friends Standing */}
@@ -731,22 +888,22 @@ export default function LeaderboardPage() {
                 Friends Circle
               </span>
               <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-black text-[#0B1635]">#3</span>
-                <span className="text-xs font-semibold text-slate-500">/ 18</span>
+                <span className="text-2xl font-black text-[#0B1635]">#2</span>
+                <span className="text-xs font-semibold text-slate-500">/ 14</span>
               </div>
-              <p className="text-[11px] font-bold text-amber-600 mt-1">Podium Finisher</p>
+              <p className="text-[11px] font-bold text-emerald-600 mt-1">🥈 Silver Standing</p>
             </div>
 
             {/* Current Level Rank */}
             <div className="bg-[#EBF7EE] rounded-2xl p-4 border border-emerald-200/90 shadow-2xs">
               <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider">
-                Level 4 Standing
+                Level 3 Standing
               </span>
               <div className="flex items-baseline gap-1.5 mt-1">
                 <span className="text-2xl font-black text-emerald-950">#2</span>
-                <span className="text-xs font-semibold text-emerald-700">/ 142</span>
+                <span className="text-xs font-semibold text-emerald-700">/ 4</span>
               </div>
-              <p className="text-[11px] font-bold text-emerald-700 mt-1">Runner Up in Tier</p>
+              <p className="text-[11px] font-bold text-emerald-700 mt-1">🥈 Silver in Tier</p>
             </div>
 
             {/* Current XP & Level */}
@@ -755,9 +912,9 @@ export default function LeaderboardPage() {
                 Level Progress
               </span>
               <div className="flex items-baseline gap-1.5 mt-1">
-                <span className="text-2xl font-black text-[#0B1635]">Level 4</span>
+                <span className="text-2xl font-black text-[#0B1635]">Level 3</span>
               </div>
-              <p className="text-[11px] font-bold text-slate-500 mt-1">600 / 850 XP</p>
+              <p className="text-[11px] font-bold text-slate-500 mt-1">{userEffectiveXp} / 600 XP</p>
             </div>
           </div>
 
@@ -843,7 +1000,10 @@ export default function LeaderboardPage() {
               {/* Members in selected level */}
               <div className="space-y-1.5">
                 {currentLevelInfo.members.map((entry) => {
-                  const isUser = entry.name?.startsWith('You');
+                  const isUser = isEntryUser(entry);
+                  const streak = isUser ? userEffectiveStreak : entry.currentStreak;
+                  const displayName = isUser ? 'You' : getEntryName(entry);
+                  const displayImage = isUser ? (userProfile?.image || '/images/avatar-riya.jpg') : (entry.image || '/images/avatar-maya.jpg');
 
                   return (
                     <div
@@ -866,8 +1026,8 @@ export default function LeaderboardPage() {
                         </span>
 
                         <Avatar
-                          name={isUser && userProfile?.name ? userProfile.name : entry.name}
-                          src={isUser && userProfile?.image ? userProfile.image : entry.image}
+                          name={displayName}
+                          src={displayImage}
                           className="w-9 h-9 sm:w-10 sm:h-10 rounded-full shadow-2xs shrink-0"
                         />
 
@@ -877,7 +1037,7 @@ export default function LeaderboardPage() {
                               isUser ? 'text-emerald-950' : 'text-[#0B1635]'
                             }`}
                           >
-                            {isUser ? 'You' : entry.name}
+                            {displayName}
                           </span>
                           <span className="text-[11px] font-semibold text-slate-400 ml-2">
                             Level {entry.level}
@@ -891,7 +1051,7 @@ export default function LeaderboardPage() {
                           isUser ? 'text-emerald-700 font-extrabold' : 'text-slate-700'
                         }`}
                       >
-                        {entry.currentStreak} day streak
+                        {streak} day streak
                       </div>
                     </div>
                   );
@@ -905,13 +1065,13 @@ export default function LeaderboardPage() {
         <>
           {/* Top 3 Podium */}
           <div className="grid grid-cols-3 gap-2.5 sm:gap-4 items-end pt-5 sm:pt-8 pb-3 max-w-xl mx-auto w-full">
-            {/* Rank 2 (Left - Sneha Patel) */}
+            {/* Rank 2 (Left - Maya Chen) */}
             <div className="flex flex-col items-center w-full">
               {/* Avatar with translucent lavender halo + Rank 2 Badge ON TOP of image */}
               <div className="relative mb-[-12px] sm:mb-[-14px] z-20 flex flex-col items-center">
                 <div className="p-1 sm:p-1.5 rounded-full bg-[#E2DCFD]/80 shadow-2xs">
                   <img
-                    src={getEntryImage(rank2) || '/images/avatar-sneha.jpg'}
+                    src={getEntryImage(rank2) || '/images/avatar-maya.jpg'}
                     alt={getEntryName(rank2)}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
                   />
@@ -933,7 +1093,7 @@ export default function LeaderboardPage() {
               </div>
             </div>
 
-            {/* Rank 1 (Center - Aarav Mehta - Taller) */}
+            {/* Rank 1 (Center - Jordan Lee - Taller) */}
             <div className="flex flex-col items-center w-full">
               {/* Avatar with translucent golden-amber halo + Rank 1 Badge ON TOP of image */}
               <div className="relative mb-[-14px] sm:mb-[-16px] z-20 flex flex-col items-center">
@@ -961,13 +1121,13 @@ export default function LeaderboardPage() {
               </div>
             </div>
 
-            {/* Rank 3 (Right - Ishaan Kapoor) */}
+            {/* Rank 3 (Right - Riya / Ishaan) */}
             <div className="flex flex-col items-center w-full">
               {/* Avatar with translucent coral halo + Rank 3 Badge ON TOP of image */}
               <div className="relative mb-[-12px] sm:mb-[-14px] z-20 flex flex-col items-center">
                 <div className="p-1 sm:p-1.5 rounded-full bg-[#FED4C7]/85 shadow-2xs">
                   <img
-                    src={getEntryImage(rank3) || '/images/avatar-ishaan.jpg'}
+                    src={getEntryImage(rank3) || (isEntryUser(rank3) ? '/images/avatar-riya.jpg' : '/images/avatar-ishaan.jpg')}
                     alt={getEntryName(rank3)}
                     className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover"
                   />
@@ -1003,7 +1163,7 @@ export default function LeaderboardPage() {
                 </p>
               </div>
             ) : (
-              listEntries.map((entry) => {
+              listEntries.map((entry: LeaderboardEntry) => {
                 const isCurrentUser =
                   (currentUserId && entry.userId === currentUserId) || entry.name === 'You';
                 const displayName = isCurrentUser ? 'You' : entry.name || 'Member';

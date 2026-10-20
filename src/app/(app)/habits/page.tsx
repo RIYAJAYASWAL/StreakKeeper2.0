@@ -27,9 +27,9 @@ import { Textarea } from '@/components/ui/Textarea';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useToast } from '@/components/ui/Toast';
 import { getCategoryConfig } from '@/components/habits';
-import { useSharedHabits } from '@/lib/habitsStore';
+import { useSharedHabits, computeWeeklyDots } from '@/lib/habitsStore';
 
-// Fallback demo habits matching the reference screenshot exactly
+// Fallback demo habits matching the current week and active streaks
 const DEFAULT_DEMO_HABITS: Array<HabitItem & { subtitle: string; streakDays: number; dots: ('COMPLETED' | 'FROZEN' | 'NONE')[] }> = [
   {
     id: 'demo-1',
@@ -42,7 +42,7 @@ const DEFAULT_DEMO_HABITS: Array<HabitItem & { subtitle: string; streakDays: num
     createdAt: '2026-09-01',
     subtitle: 'Daily · 30 mins',
     streakDays: 7,
-    dots: ['COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'NONE', 'NONE'],
+    dots: computeWeeklyDots(true, 7),
   },
   {
     id: 'demo-2',
@@ -54,8 +54,8 @@ const DEFAULT_DEMO_HABITS: Array<HabitItem & { subtitle: string; streakDays: num
     startDate: '2026-09-01',
     createdAt: '2026-09-01',
     subtitle: 'Daily · 45 mins',
-    streakDays: 5,
-    dots: ['COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'NONE', 'NONE', 'NONE'],
+    streakDays: 6,
+    dots: computeWeeklyDots(true, 6),
   },
   {
     id: 'demo-3',
@@ -68,7 +68,7 @@ const DEFAULT_DEMO_HABITS: Array<HabitItem & { subtitle: string; streakDays: num
     createdAt: '2026-09-01',
     subtitle: 'Daily · 2L',
     streakDays: 3,
-    dots: ['COMPLETED', 'COMPLETED', 'COMPLETED', 'NONE', 'NONE', 'NONE', 'NONE'],
+    dots: computeWeeklyDots(false, 3),
   },
   {
     id: 'demo-4',
@@ -81,7 +81,7 @@ const DEFAULT_DEMO_HABITS: Array<HabitItem & { subtitle: string; streakDays: num
     createdAt: '2026-09-01',
     subtitle: 'Daily · 10 mins',
     streakDays: 2,
-    dots: ['COMPLETED', 'COMPLETED', 'NONE', 'NONE', 'NONE', 'NONE', 'NONE'],
+    dots: computeWeeklyDots(false, 2),
   },
   {
     id: 'demo-5',
@@ -94,7 +94,7 @@ const DEFAULT_DEMO_HABITS: Array<HabitItem & { subtitle: string; streakDays: num
     createdAt: '2026-09-01',
     subtitle: 'Daily',
     streakDays: 1,
-    dots: ['COMPLETED', 'NONE', 'NONE', 'NONE', 'NONE', 'NONE', 'NONE'],
+    dots: computeWeeklyDots(false, 1),
   },
 ];
 
@@ -605,23 +605,30 @@ function HabitCardItem({ habit, weekRange, onClick }: HabitCardItemProps) {
 
   // Calculate the 7 dots status: COMPLETED, FROZEN, or NONE
   const dots = useMemo(() => {
-    if (habit.dots) return habit.dots;
-
-    const checkInsMap = new Map<string, string>();
-    if (checkInsData) {
+    if (!isDemo && checkInsData && checkInsData.length > 0) {
+      const checkInsMap = new Map<string, string>();
       checkInsData.forEach((c) => {
         const dateStr = typeof c.localDate === 'string' ? c.localDate.slice(0, 10) : '';
         if (dateStr) checkInsMap.set(dateStr, c.status);
       });
+
+      return weekRange.dates.map((dateStr) => {
+        const status = checkInsMap.get(dateStr);
+        if (status === 'COMPLETED') return 'COMPLETED';
+        if (status === 'FROZEN') return 'FROZEN';
+        return 'NONE';
+      });
     }
 
-    return weekRange.dates.map((dateStr) => {
-      const status = checkInsMap.get(dateStr);
-      if (status === 'COMPLETED') return 'COMPLETED';
-      if (status === 'FROZEN') return 'FROZEN';
-      return 'NONE';
-    });
-  }, [habit.dots, checkInsData, weekRange.dates]);
+    if (habit.dots && Array.isArray(habit.dots)) {
+      return habit.dots;
+    }
+
+    return computeWeeklyDots(
+      habit.isCompleted ?? false,
+      habit.streak?.current ?? habit.streakDays ?? 0
+    );
+  }, [habit.dots, habit.isCompleted, habit.streak, habit.streakDays, isDemo, checkInsData, weekRange.dates]);
 
   const streakCount = habit.streak?.current ?? habit.streakDays ?? 0;
   const subtitle =

@@ -59,6 +59,8 @@ export async function getLeaderboard(
           SELECT f."requesterId" FROM "Friendship" f WHERE f."addresseeId" = ${userId}::text AND f.status = 'ACCEPTED'
         )
       )
+      AND (u.name IS NULL OR (u.name NOT LIKE '%Test%' AND u.name NOT LIKE '%Tester%' AND u.name NOT LIKE '%New Registered%'))
+      AND (u.email IS NULL OR (u.email NOT LIKE 'xp_test_%' AND u.email NOT LIKE 'freeze_test_%'))
     ),
     user_best_streaks AS (
       SELECT

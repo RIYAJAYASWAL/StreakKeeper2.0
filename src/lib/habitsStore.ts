@@ -16,6 +16,60 @@ export interface SharedHabit {
   hasRestorableMissedDay?: boolean;
 }
 
+// Get today's index in Mon-Sun (0=Mon, 1=Tue, ..., 6=Sun)
+export function getTodayDotIndex(): number {
+  const day = new Date().getDay(); // 0 is Sunday, 1 is Monday
+  return day === 0 ? 6 : day - 1;
+}
+
+export function getTodayDateStr(): string {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+/**
+ * Compute the 7-day Mon-Sun dots for the current week dynamically.
+ * Future days in this week are always NONE (cannot be completed yet).
+ * Today's dot reflects isCompletedToday.
+ * Past days in this week reflect whether the streak covered them.
+ */
+export function computeWeeklyDots(
+  isCompletedToday: boolean,
+  streakDays: number
+): ('COMPLETED' | 'FROZEN' | 'NONE')[] {
+  const todayIdx = getTodayDotIndex();
+  const dots: ('COMPLETED' | 'FROZEN' | 'NONE')[] = [
+    'NONE',
+    'NONE',
+    'NONE',
+    'NONE',
+    'NONE',
+    'NONE',
+    'NONE',
+  ];
+
+  for (let i = 0; i < 7; i++) {
+    if (i > todayIdx) {
+      dots[i] = 'NONE';
+    } else if (i === todayIdx) {
+      dots[i] = isCompletedToday ? 'COMPLETED' : 'NONE';
+    } else {
+      const daysAgo = todayIdx - i;
+      const pastStreakThreshold = isCompletedToday ? streakDays - 1 : streakDays;
+      if (daysAgo <= pastStreakThreshold) {
+        dots[i] = 'COMPLETED';
+      } else {
+        dots[i] = 'NONE';
+      }
+    }
+  }
+
+  return dots;
+}
+
 export const INITIAL_DEMO_HABITS: SharedHabit[] = [
   {
     id: 'demo-1',
@@ -27,7 +81,7 @@ export const INITIAL_DEMO_HABITS: SharedHabit[] = [
     targetCount: 1,
     isCompleted: true,
     streakDays: 7,
-    dots: ['COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED'],
+    dots: computeWeeklyDots(true, 7),
   },
   {
     id: 'demo-2',
@@ -35,11 +89,11 @@ export const INITIAL_DEMO_HABITS: SharedHabit[] = [
     category: 'FITNESS',
     frequencyType: 'DAILY',
     subtitle: 'Daily · 45 mins',
-    currentCount: 2,
-    targetCount: 3,
-    isCompleted: false,
-    streakDays: 5,
-    dots: ['COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'NONE', 'NONE'],
+    currentCount: 1,
+    targetCount: 1,
+    isCompleted: true,
+    streakDays: 6,
+    dots: computeWeeklyDots(true, 6),
   },
   {
     id: 'demo-3',
@@ -51,7 +105,7 @@ export const INITIAL_DEMO_HABITS: SharedHabit[] = [
     targetCount: 1,
     isCompleted: false,
     streakDays: 3,
-    dots: ['COMPLETED', 'COMPLETED', 'COMPLETED', 'NONE', 'NONE', 'NONE', 'NONE'],
+    dots: computeWeeklyDots(false, 3),
   },
   {
     id: 'demo-4',
@@ -63,7 +117,7 @@ export const INITIAL_DEMO_HABITS: SharedHabit[] = [
     targetCount: 1,
     isCompleted: false,
     streakDays: 2,
-    dots: ['COMPLETED', 'COMPLETED', 'NONE', 'NONE', 'NONE', 'NONE', 'NONE'],
+    dots: computeWeeklyDots(false, 2),
   },
   {
     id: 'demo-5',
@@ -75,10 +129,9 @@ export const INITIAL_DEMO_HABITS: SharedHabit[] = [
     targetCount: 1,
     isCompleted: false,
     streakDays: 1,
-    dots: ['COMPLETED', 'NONE', 'NONE', 'NONE', 'NONE', 'NONE', 'NONE'],
+    dots: computeWeeklyDots(false, 1),
   },
 ];
-
 const HABITS_STORAGE_KEY = 'streakkeeper_habits_v3';
 const XP_STORAGE_KEY = 'streakkeeper_xp_v3';
 const DATES_STORAGE_KEY = 'streakkeeper_dates_v3';
@@ -95,20 +148,6 @@ export function levelFromXp(xp: number): number {
   return level;
 }
 
-// Get today's index in Mon-Sun (0=Mon, 1=Tue, ..., 6=Sun)
-export function getTodayDotIndex(): number {
-  const day = new Date().getDay(); // 0 is Sunday, 1 is Monday
-  return day === 0 ? 6 : day - 1;
-}
-
-export function getTodayDateStr(): string {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 export function loadStoredHabits(): SharedHabit[] {
   if (typeof window === 'undefined') return INITIAL_DEMO_HABITS;
   try {
@@ -119,7 +158,42 @@ export function loadStoredHabits(): SharedHabit[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+      let changed = false;
+      const normalized = parsed.map((h: SharedHabit) => {
+        const isDemo2 = h.id === 'demo-2';
+        const targetCount = isDemo2 ? 1 : (h.targetCount ?? 1);
+        const currentCount = isDemo2
+          ? (h.isCompleted || h.currentCount >= 1 ? 1 : 0)
+          : h.currentCount;
+        const isCompleted = isDemo2
+          ? (h.isCompleted || h.currentCount >= 1)
+          : h.isCompleted;
+        const streakDays = isDemo2 && h.streakDays === 5 ? 6 : h.streakDays;
+        const freshDots = computeWeeklyDots(isCompleted, streakDays);
+
+        if (
+          h.targetCount !== targetCount ||
+          h.currentCount !== currentCount ||
+          h.isCompleted !== isCompleted ||
+          h.streakDays !== streakDays ||
+          JSON.stringify(h.dots) !== JSON.stringify(freshDots)
+        ) {
+          changed = true;
+        }
+
+        return {
+          ...h,
+          targetCount,
+          currentCount,
+          isCompleted,
+          streakDays,
+          dots: freshDots,
+        };
+      });
+      if (changed) {
+        localStorage.setItem(HABITS_STORAGE_KEY, JSON.stringify(normalized));
+      }
+      return normalized;
     }
   } catch (err) {
     console.warn('Failed to parse stored habits', err);
@@ -257,8 +331,7 @@ export function useSharedHabits() {
           ? h.streakDays + (h.isCompleted ? 0 : 1)
           : Math.max(0, h.streakDays - 1);
 
-        const newDots = [...h.dots];
-        newDots[todayIdx] = willBeCompleted ? 'COMPLETED' : 'NONE';
+        const newDots = computeWeeklyDots(willBeCompleted, newStreak);
 
         return {
           ...h,
@@ -323,8 +396,7 @@ export function useSharedHabits() {
             ? Math.max(0, h.streakDays - 1)
             : h.streakDays;
 
-        const newDots = [...h.dots];
-        newDots[todayIdx] = willBeCompleted ? 'COMPLETED' : 'NONE';
+        const newDots = computeWeeklyDots(willBeCompleted, newStreak);
 
         return {
           ...h,

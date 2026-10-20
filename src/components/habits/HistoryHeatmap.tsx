@@ -104,110 +104,134 @@ const FREEZE_REASON_META: Record<
   },
 };
 
-const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Nov', 'Dec', 'Sat'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-// Generate dummy heatmap data matching the reference mockup layout
+// Generate dummy heatmap data matching the reference mockup layout and habit streak metrics
 export function generateMockHeatmapData(
   weeksCount: number = 52,
   scheduledDaysOfWeek?: number[],
-  seedString: string = 'habit'
+  seedString: string = 'habit',
+  currentStreak: number = 7,
+  longestStreak: number = 14,
+  startDateStr: string = '2026-06-01'
 ): HeatmapDay[] {
   const result: HeatmapDay[] = [];
   const now = new Date();
   now.setHours(0, 0, 0, 0);
+  const todayStr = now.toISOString().slice(0, 10);
 
-  // Recent dates for testing restore:
-  // Yesterday (1 day ago) and 2 days ago are explicitly marked as MISSED
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().slice(0, 10);
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const endOfYear = new Date(now.getFullYear(), 11, 31);
 
-  const twoDaysAgo = new Date(now);
-  twoDaysAgo.setDate(now.getDate() - 2);
-  const twoDaysAgoStr = twoDaysAgo.toISOString().slice(0, 10);
+  // Best streak window in September (Sep 4 to Sep 17 for 14 days)
+  const bestDays = Math.max(1, longestStreak);
+  const bestStart = new Date(now.getFullYear(), 8, 4);
+  const bestEnd = new Date(bestStart);
+  bestEnd.setDate(bestStart.getDate() + bestDays - 1);
+  const bestStartStr = bestStart.toISOString().slice(0, 10);
+  const bestEndStr = bestEnd.toISOString().slice(0, 10);
 
-  const reasonsList = [
-    { reason: 'Travel', note: 'Cross-country flight and airport transit without gym access.' },
-    { reason: 'Sick', note: 'Seasonal flu and high fever. Rested for recovery.' },
-    { reason: 'Exams', note: 'Final evaluation study sprint until 3:00 AM.' },
-    { reason: 'Family event', note: 'Attended cousin’s wedding ceremony and reception.' },
-    { reason: 'Work', note: 'Urgent production outage resolution past midnight.' },
-  ];
+  // Current streak window leading up to today
+  const curDays = Math.max(0, currentStreak);
+  const curStart = new Date(now);
+  curStart.setDate(now.getDate() - curDays + 1);
+  const curStartStr = curStart.toISOString().slice(0, 10);
 
-  let seedHash = 0;
-  for (let s = 0; s < seedString.length; s++) {
-    seedHash = (seedHash << 5) - seedHash + seedString.charCodeAt(s);
-    seedHash |= 0;
-  }
-
-  const daysInYear = Math.max(weeksCount * 7, 365);
-  const startDate = new Date(now);
-  startDate.setDate(now.getDate() - daysInYear);
-
-  for (let i = 0; i <= daysInYear; i++) {
-    const d = new Date(startDate);
-    d.setDate(startDate.getDate() + i);
+  for (let d = new Date(startOfYear); d <= endOfYear; d.setDate(d.getDate() + 1)) {
     const dateStr = d.toISOString().slice(0, 10);
 
-    // CRITICAL: Explicitly set Yesterday and 2 Days Ago as MISSED for restore testing!
-    if (dateStr === yesterdayStr || dateStr === twoDaysAgoStr) {
-      result.push({
-        date: dateStr,
-        status: 'missed',
-        note: 'Goal not met. Missed session is within grace period and eligible for Streak Freeze restore!',
-      });
-      continue;
-    }
-
+    // 1. Future dates
     if (d > now) {
       result.push({
         date: dateStr,
         status: 'not_scheduled',
+        note: 'Future scheduled date.',
       });
       continue;
     }
 
-    const isoDay = d.getDay();
-    const isScheduled = scheduledDaysOfWeek
-      ? scheduledDaysOfWeek.includes(isoDay)
-      : true;
-
-    if (!isScheduled) {
+    // 2. Before habit start date (Jan - May)
+    if (startDateStr && dateStr < startDateStr) {
       result.push({
         date: dateStr,
         status: 'not_scheduled',
+        note: 'Habit not started yet (started June 1, 2026).',
       });
       continue;
     }
 
-    const key = `${seedString}:${dateStr}`;
-    let hash = 0;
-    for (let c = 0; c < key.length; c++) {
-      hash = (hash << 5) - hash + key.charCodeAt(c);
-      hash |= 0;
+    // 3. Current active streak window ending today
+    if (curDays > 0 && dateStr >= curStartStr && dateStr <= todayStr) {
+      result.push({
+        date: dateStr,
+        status: 'kept',
+        note: dateStr === todayStr ? 'Completed today! +10 XP' : 'Completed scheduled habit session.',
+      });
+      continue;
     }
-    const rand = Math.abs(hash) % 100;
 
-    // Matching reference mockup distribution: ~80% kept, ~12% frozen, ~8% missed/rest
-    if (rand < 78) {
+    // 4. Days immediately preceding the current streak (missed days that reset previous streak)
+    const daysBeforeCur = Math.round((curStart.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysBeforeCur >= 1 && daysBeforeCur <= 2) {
+      result.push({
+        date: dateStr,
+        status: 'missed',
+        note: 'Goal not met. Missed session is eligible for Streak Freeze restore!',
+      });
+      continue;
+    }
+
+    // 5. Personal Best streak window in September (Sep 4 to Sep 17 = 14 days)
+    if (dateStr >= bestStartStr && dateStr <= bestEndStr) {
+      result.push({
+        date: dateStr,
+        status: 'kept',
+        note: `Part of personal best ${longestStreak}-day streak!`,
+      });
+      continue;
+    }
+
+    const daysBeforeBest = Math.round((bestStart.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    const daysAfterBest = Math.round((d.getTime() - bestEnd.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysBeforeBest === 1 || daysAfterBest === 1) {
+      result.push({
+        date: dateStr,
+        status: 'missed',
+        note: 'Goal not met. Rest day / streak reset.',
+      });
+      continue;
+    }
+
+    // 6. Streak Freeze event in July (July 15)
+    if (d.getMonth() === 6 && d.getDate() === 15) {
+      result.push({
+        date: dateStr,
+        status: 'frozen',
+        freezeReason: 'Travel',
+        freezeNote: 'Cross-country flight without reading access. Protected by Streak Freeze.',
+      });
+      continue;
+    }
+
+    // 7. General active cadence (June to early October): 2-3 day runs
+    const hash = (d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate()) % 100;
+    if (hash < 48) {
       result.push({
         date: dateStr,
         status: 'kept',
         note: 'Completed scheduled habit session.',
       });
-    } else if (rand < 90) {
-      const reasonMeta = reasonsList[Math.abs(hash >> 3) % reasonsList.length];
-      result.push({
-        date: dateStr,
-        status: 'frozen',
-        freezeReason: reasonMeta.reason,
-        freezeNote: reasonMeta.note,
-      });
-    } else {
+    } else if (hash < 76) {
       result.push({
         date: dateStr,
         status: 'missed',
         note: 'Goal not met.',
+      });
+    } else {
+      result.push({
+        date: dateStr,
+        status: 'not_scheduled',
+        note: 'Rest day / off-schedule.',
       });
     }
   }
@@ -234,7 +258,7 @@ export function HistoryHeatmap({
     if (userDays && userDays.length > 0) {
       return userDays;
     }
-    return generateMockHeatmapData(52, scheduledDaysOfWeek, habitId || habitName || 'habit');
+    return generateMockHeatmapData(52, scheduledDaysOfWeek, habitId || habitName || 'habit', 7, 14, '2026-06-01');
   }, [userDays, scheduledDaysOfWeek, habitId, habitName]);
 
   const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), []);
@@ -267,7 +291,7 @@ export function HistoryHeatmap({
       }
     });
 
-    if (totalScheduledWeight === 0) return 92;
+    if (totalScheduledWeight === 0) return 82;
     return Math.round((weightedKept / totalScheduledWeight) * 100);
   }, [allDays, todayStr]);
 
@@ -275,7 +299,7 @@ export function HistoryHeatmap({
     { label: 'Sun', rowCount: 3 },
     { label: 'Tue', rowCount: 3 },
     { label: 'Thu', rowCount: 3 },
-    { label: 'Thu', rowCount: 3 },
+    { label: 'Fri', rowCount: 3 },
     { label: 'Sat', rowCount: 2 },
   ];
 
@@ -283,13 +307,12 @@ export function HistoryHeatmap({
     const dayMap = new Map<string, HeatmapDay>();
     allDays.forEach((d) => dayMap.set(d.date, d));
 
-    const pastDays = allDays.filter((d) => d.date <= todayStr);
-    // Slice exactly to fill the 354 cell slots so today is the last visible cell
-    const visiblePastDays = pastDays.length > 354 ? pastDays.slice(pastDays.length - 354) : pastDays;
-    let dayIndex = 0;
-
     return MONTH_NAMES.map((mName, mIdx) => {
-      const isFuturePlaceholder = mIdx >= 9; // Nov (9), Dec (10), Sat (11)
+      // Future months: Nov (10) and Dec (11) are future placeholders
+      const isFuturePlaceholder = mIdx >= 10;
+      const monthNum = mIdx + 1; // 1 = Jan, ..., 10 = Oct, 11 = Nov, 12 = Dec
+      const daysInMonth = new Date(2026, monthNum, 0).getDate();
+      let dayOfMonth = 1;
 
       const groups = rowGroupsConfig.map((grp, gIdx) => {
         const isGroup4 = gIdx === 4; // Sat row group
@@ -306,27 +329,26 @@ export function HistoryHeatmap({
                 status: 'not_scheduled',
                 isLargeBlock: true,
               };
-            } else if (isGroup4 && mIdx >= 4 && mIdx <= 7) {
-              day = {
-                date: `rest-${mIdx}-${r}-${c}`,
-                status: 'missed',
-                note: 'Rest period / off-schedule.',
-              };
-            } else if (isGroup4 && isFuturePlaceholder) {
+            } else if (isFuturePlaceholder && isGroup4) {
               day = {
                 date: `future-${mIdx}-${gIdx}-${r}-${c}`,
                 status: 'not_scheduled',
                 isLargeBlock: true,
               };
             } else {
-              if (dayIndex < visiblePastDays.length) {
-                day = visiblePastDays[dayIndex];
-                dayIndex++;
+              if (dayOfMonth <= daysInMonth) {
+                const dateKey = `2026-${String(monthNum).padStart(2, '0')}-${String(dayOfMonth).padStart(2, '0')}`;
+                day = dayMap.get(dateKey) || {
+                  date: dateKey,
+                  status: 'not_scheduled',
+                  note: 'Not scheduled.',
+                };
+                dayOfMonth++;
               } else {
                 day = {
-                  date: `synth-${mIdx}-${gIdx}-${r}-${c}`,
-                  status: 'kept',
-                  note: 'Completed scheduled habit session.',
+                  date: `pad-${mIdx}-${gIdx}-${r}-${c}`,
+                  status: 'not_scheduled',
+                  note: 'Off-schedule.',
                 };
               }
             }
@@ -339,7 +361,7 @@ export function HistoryHeatmap({
 
       return { monthName: mName, groups };
     });
-  }, [allDays, todayStr]);
+  }, [allDays, rowGroupsConfig]);
 
   const formatDayDate = (dateStr: string) => {
     try {

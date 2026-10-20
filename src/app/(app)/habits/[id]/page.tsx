@@ -277,25 +277,19 @@ export default function HabitDetailPage() {
 
   // Prepare Heatmap Days synced with actual habit data
   const heatmapDays = useMemo<HeatmapDay[]>(() => {
-    if (habitId.startsWith('demo-')) {
-      const demoData = generateMockHeatmapData(
+    const curStreak = habit?.streak?.current ?? 7;
+    const bestStreak = habit?.streak?.longest ?? 14;
+    const startStr = habit?.startDate ? String(habit.startDate).slice(0, 10) : '2026-06-01';
+
+    if (habitId.startsWith('demo-') || !heatmapData?.days || heatmapData.days.length === 0) {
+      return generateMockHeatmapData(
         52,
         habit?.frequencyType === 'CUSTOM' ? habit?.daysOfWeek : undefined,
-        habitId
+        habitId,
+        curStreak,
+        bestStreak,
+        startStr
       );
-      // Synchronize recent days with the demo habit streak
-      const streakCount = habit?.streak?.current ?? 0;
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const pastOrToday = demoData.filter((d) => d.date <= todayStr);
-      for (let i = 0; i < Math.min(streakCount, pastOrToday.length); i++) {
-        const idx = pastOrToday.length - 1 - i;
-        pastOrToday[idx].status = 'kept';
-      }
-      return demoData;
-    }
-
-    if (!heatmapData?.days || heatmapData.days.length === 0) {
-      return [];
     }
 
     return heatmapData.days.map((d) => {
